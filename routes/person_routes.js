@@ -3,7 +3,6 @@ const person = require('../model/personmodel');
 const router = app.Router();
 
 
-
 router.get('/', (req, res) => {
     res.status(200).json({ status: 200, message: 'Api called successfully' })
 });
