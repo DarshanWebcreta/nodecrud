@@ -11,7 +11,7 @@ router.get('/', (req, res) => {
 router.post('/addperson', async (req, res) => {
     try {
         const persondata = person(req.body);
-        if (persondata.body!=null) {
+        if (persondata) {
             const data = await persondata.save();
             res.status(200).json(data);
         }
