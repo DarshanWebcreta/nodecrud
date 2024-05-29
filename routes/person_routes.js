@@ -1,15 +1,88 @@
 const app = require('express');
 const person = require('../model/personmodel');
 const router = app.Router();
+const {generateToken,jwtMiddleWare} = require('./../jwt')
+const multer = require('multer')
+const storage  = multer.diskStorage({
+    destination:function(req,file,cb){
+        cb(null,'./upload')
+    },
+    filename:function(req,file,cb){
+        cb(null,Date.now()+'-'+file.originalname)
+    }
+})
 
+const upload = multer({storage:storage})
 
-router.get('/', (req, res) => {
-    res.status(200).json({ status: 200, message: 'Api called successfully' })
+router.get('/', jwtMiddleWare,(req, res) => {
+    const userData = req.user; // Access the decoded token data
+    res.status(200).json({ status: 200, message: 'API called successfully', data: userData });
 });
 
-router.post('/addperson', async (req, res) => {
+router.post('/login', async(req, res) => {
+   
+    try{
+        const userData = req.body;
+        // const {username,password} = req.body;
+        const  user =  await person.findOne({username:userData.username})
+    if(!user|| !(await user.checkPassword(userData.password))){
+        return res.status(200).json({status:401,message:"User not exist"})
+    }
+    const payload = {
+        id: user.id,
+        username:user.username
+    }
+    const jwttoken  =  generateToken(payload);
+
+   
+    res.status(200).json({ status: 200, token:jwttoken,message: 'Api called successfully' })
+    }catch(err){
+        console.log(err);
+        res.status(500).json({ status: 500,message: 'Something went wrong' })
+    }
+});
+//router.post('/upload',upload.array('mypic',20),async(req, res) => {
+router.post('/upload',upload.single('mypic'),async(req, res) => {
+   
+    try{
+        console.log(req.file)
+     es.status(200).json()
+
+   
+    }catch(err){
+        console.log(err);
+        res.status(500).json({ status: 500,message: 'Something went wrong' })
+    }
+});
+
+router.get('/profile', jwtMiddleWare,async(req, res) => {
+   
+    try{
+        const userdata = req.user;
+        console.log(userdata)
+        const  user =  await person.findById(userdata.id)
+        console.log(user)
+   
+
+    res.status(200).json({ status: 200,message: 'Data Found successfully',data:user })
+    }catch(err){
+        console.log(err);
+        res.status(500).json({ status: 500,message: 'Something went wrong',data:null })
+    }
+});
+
+
+router.post('/addperson', upload.single('image'),async (req, res) => {
     try {
-        const persondata = person(req.body);
+        
+        const persondata =   person({
+            name:req.body.name ,
+            role: req.body.role,
+            password:req.body.password,
+            salary: req.body.salary,
+            username:req.body.username ,
+            image:req.file.filename
+        })
         if (persondata) {
             const data = await persondata.save();
             res.status(200).json(data);
@@ -22,8 +95,8 @@ router.post('/addperson', async (req, res) => {
     }
     catch (e) {
         
-        console.log("responce og adduser :",res.message);
-        res.status(401).json({ status: 401,message:"Something went wrong", data: null });
+        console.log("responce og adduser :",res.error);
+        res.status(401).json({ status: 401,message:"Something went wrong", data: e });
     }
 })
 router.post('/:id', async (req, res) => {
